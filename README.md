@@ -27,6 +27,10 @@ sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
 sq 'SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10'
 sq -f query.rq
 echo 'ASK { ?s a schema:Person }' | sq
+sq < query.rq
+# bare `sq` (no arg, no -f) reads the query from stdin. It's for pipes/redirects,
+# not a line editor: on a terminal you get backspace-only editing, and you submit
+# with Ctrl-D (EOF), cancel with Ctrl-C. For interactive use prefer `sq '<query>'`.
 
 # formats: text (tty default), tsv (pipe default), csv, json/-j, xml; ttl/nt for CONSTRUCT
 sq -r csv 'SELECT …' > out.csv

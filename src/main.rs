@@ -136,6 +136,12 @@ fn query_text(parts: &[String], file: &Option<PathBuf>) -> Result<String> {
     } else if let Some(f) = file {
         Ok(std::fs::read_to_string(f)?)
     } else {
+        if std::io::stdin().is_terminal() {
+            eprintln!(
+                "sq: reading query from stdin — finish with Ctrl-D to run, Ctrl-C to cancel.\n\
+                 sq: (for interactive use, prefer `sq '<query>'` or `sq -f FILE`)"
+            );
+        }
         let mut s = String::new();
         std::io::stdin().read_to_string(&mut s)?;
         if s.trim().is_empty() {
