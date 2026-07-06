@@ -715,6 +715,7 @@ dependencies = [
  "clap",
  "comfy-table",
  "dirs",
+ "libc",
  "serde",
  "serde_json",
  "terminal_size",

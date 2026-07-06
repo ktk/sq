@@ -85,6 +85,10 @@ struct Cli {
 fn main() -> ExitCode {
     // Behave like a normal unix filter: when a downstream pipe (e.g. `| head`)
     // closes, die on SIGPIPE instead of panicking on a broken-pipe write.
+    // Rust resets SIGPIPE to SIG_IGN at startup; we restore the default. The
+    // `unsafe` is only because `libc::signal` is FFI — restoring SIG_DFL is a
+    // sound, standard call (the Rust CLI book's recommended fix). No safe stdlib
+    // API for this exists on stable.
     #[cfg(unix)]
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
