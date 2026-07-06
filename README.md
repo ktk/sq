@@ -36,6 +36,7 @@ sq -j 'SELECT …' | jq -r '.results.bindings[].s.value'
 sq --full 'SELECT …'          # keep full IRIs instead of shrinking
 
 # built-ins
+sq any                        # peek at 20 arbitrary triples (sq any 50 for more)
 sq graphs                     # named graphs + triple counts
 sq classes                    # class -> instance count
 sq count schema:Person        # instances of a class

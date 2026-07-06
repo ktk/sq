@@ -24,7 +24,7 @@ use std::process::ExitCode;
                   prefixes, shrinks IRIs in human output, and ships a few built-in queries.\n\n\
                   Read:    sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'\n\
                   Update:  sq update 'INSERT DATA { ... }'\n\
-                  Built-in: sq graphs | classes | about <node> | preds <node> | count <class>\n\
+                  Built-in: sq any [N] | graphs | classes | about <node> | preds <node> | count <class>\n\
                   Input can be an inline query, -f FILE, or stdin."
 )]
 struct Cli {
@@ -104,6 +104,7 @@ fn run() -> Result<ExitCode> {
 
     let sub = cli.rest.first().map(String::as_str);
     match sub {
+        Some("any") => read(&cli, &resolved, any_q(cli.rest.get(1).map(String::as_str))),
         Some("graphs") => read(&cli, &resolved, GRAPHS_Q.to_string()),
         Some("classes") => read(&cli, &resolved, CLASSES_Q.to_string()),
         Some("count") => read(&cli, &resolved, count_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
@@ -527,6 +528,12 @@ fn list_endpoints(cli: &Cli) -> Result<ExitCode> {
 }
 
 // ── built-in query templates ─────────────────────────────────────────────────
+
+/// `sq any [N]` — peek at N arbitrary triples (default 20).
+fn any_q(limit: Option<&str>) -> String {
+    let n = limit.and_then(|s| s.parse::<u64>().ok()).unwrap_or(20);
+    format!("SELECT * WHERE {{ ?s ?p ?o }} LIMIT {n}")
+}
 
 const GRAPHS_Q: &str =
     "SELECT ?g (COUNT(*) AS ?triples) WHERE { GRAPH ?g { ?s ?p ?o } } GROUP BY ?g ORDER BY DESC(?triples)";
