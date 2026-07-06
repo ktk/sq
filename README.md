@@ -155,7 +155,7 @@ If an alias has the same name as a built-in command, the built-in command takes 
 
 | Flag | Description |
 |------|-------------|
-| `-e`, `--endpoint <NAME|URL>` | Select an endpoint by its configured name, or specify a QLever endpoint URL directly. |
+| `-e`, `--endpoint \<NAME|URL\>` | Select an endpoint by its configured name, or specify a QLever endpoint URL directly. |
 | `-r`, `--results <FMT>` | Output format: `text`, `tsv`, `csv`, `json`, `xml` for result sets, or `ttl` / `nt` for graph queries. By default, `sq` produces a readable table on a terminal and TSV when writing to a pipe. |
 | `-j`, `--json` | Shortcut for `-r json`. |
 | `--full` | Show full IRIs instead of shrinking them to prefixed names such as `schema:Person`. |
