@@ -40,7 +40,8 @@ sq any                        # peek at 20 arbitrary triples (sq any 50 for more
 sq graphs                     # named graphs + triple counts
 sq classes                    # class -> instance count
 sq count schema:Person        # instances of a class
-sq about clockify:user/abc    # all in+out triples about a node
+sq about clockify:user/abc    # all in+out triples about a node (table)
+sq desc  clockify:user/abc    # same in+out coverage, as Turtle (DESCRIBE-style)
 sq preds <node>               # distinct predicates on a subject
 sq endpoints                  # list configured endpoints + which resolves
 

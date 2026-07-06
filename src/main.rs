@@ -24,7 +24,7 @@ use std::process::ExitCode;
                   prefixes, shrinks IRIs in human output, and ships a few built-in queries.\n\n\
                   Read:    sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'\n\
                   Update:  sq update 'INSERT DATA { ... }'\n\
-                  Built-in: sq any [N] | graphs | classes | about <node> | preds <node> | count <class>\n\
+                  Built-in: sq any [N] | graphs | classes | about <node> | desc <node> | preds <node> | count <class>\n\
                   Input can be an inline query, -f FILE, or stdin."
 )]
 struct Cli {
@@ -109,6 +109,7 @@ fn run() -> Result<ExitCode> {
         Some("classes") => read(&cli, &resolved, CLASSES_Q.to_string()),
         Some("count") => read(&cli, &resolved, count_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
         Some("about") => read(&cli, &resolved, about_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
+        Some("desc") => read(&cli, &resolved, desc_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
         Some("preds") => read(&cli, &resolved, preds_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
         Some("update") => update(&cli, &resolved, query_text(&cli.rest[1..], &cli.file)?),
         _ => {
@@ -536,7 +537,17 @@ fn any_q(limit: Option<&str>) -> String {
 }
 
 const GRAPHS_Q: &str =
-    "SELECT ?g (COUNT(*) AS ?triples) WHERE { GRAPH ?g { ?s ?p ?o } } GROUP BY ?g ORDER BY DESC(?triples)";
+    "SELECT ?graph (COUNT(*) AS ?triples) WHERE { GRAPH ?graph { ?s ?p ?o } } GROUP BY ?graph ORDER BY DESC(?triples)";
+
+/// `sq desc <node>` — DESCRIBE-style Turtle dump covering both outgoing and
+/// incoming triples (a bidirectional CONSTRUCT, so it always returns a graph).
+fn desc_q(node: &str, map: &BTreeMap<String, String>) -> String {
+    let t = expand_term(node, map);
+    format!(
+        "CONSTRUCT {{ {t} ?po ?oo . ?si ?pi {t} . }} \
+         WHERE {{ {{ {t} ?po ?oo }} UNION {{ ?si ?pi {t} }} }}"
+    )
+}
 
 const CLASSES_Q: &str =
     "SELECT ?class (COUNT(?s) AS ?n) WHERE { ?s a ?class } GROUP BY ?class ORDER BY DESC(?n)";
@@ -563,15 +574,15 @@ fn count_q(class: &str, map: &BTreeMap<String, String>) -> String {
 fn about_q(node: &str, map: &BTreeMap<String, String>) -> String {
     let t = expand_term(node, map);
     format!(
-        "SELECT ?dir ?p ?other WHERE {{ \
-         {{ {t} ?p ?other BIND(\"out\" AS ?dir) }} UNION \
-         {{ ?other ?p {t} BIND(\"in\" AS ?dir) }} }} ORDER BY ?dir ?p"
+        "SELECT ?dir ?predicate ?object WHERE {{ \
+         {{ {t} ?predicate ?object BIND(\"out\" AS ?dir) }} UNION \
+         {{ ?object ?predicate {t} BIND(\"in\" AS ?dir) }} }} ORDER BY ?dir ?predicate"
     )
 }
 
 fn preds_q(node: &str, map: &BTreeMap<String, String>) -> String {
     format!(
-        "SELECT DISTINCT ?p WHERE {{ {} ?p ?o }} ORDER BY ?p",
+        "SELECT DISTINCT ?predicate WHERE {{ {} ?predicate ?object }} ORDER BY ?predicate",
         expand_term(node, map)
     )
 }
