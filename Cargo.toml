@@ -3,7 +3,7 @@ name = "sq"
 version = "0.1.0"
 edition = "2021"
 description = "Fast SPARQL client for a QLever endpoint — auto-prefixes, readable output, built-ins. The endpoint companion to sop/rvv."
-license = "MIT"
+license = "Apache-2.0"
 
 [[bin]]
 name = "sq"

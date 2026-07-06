@@ -131,17 +131,17 @@ review = """
 SELECT ?s ?o WHERE { ?s skos:closeMatch ?o } LIMIT 50"""
 ```
 
-\### Saved queries
+### Saved queries
 
 The optional `[queries]` section lets you give frequently used queries a name.
 
 Instead of typing the full query every time,
 
-\```bash
+```bash
 
 sq people
 
-\```
+```
 
 runs the query stored under `people`.
 
