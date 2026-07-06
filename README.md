@@ -47,6 +47,10 @@ sq desc  clockify:user/abc    # same in+out coverage, as Turtle (DESCRIBE-style)
 sq preds clockify:user/abc    # predicate profile of a node (predicate + usage count)
 sq endpoints                  # list configured endpoints + which resolves
 
+# query aliases (stored in the [queries] config table)
+sq people                     # runs the query named "people"
+sq aliases                    # list configured query aliases
+
 # updates (needs a token: SQ_TOKEN / QLEVER_TOKEN / config token_env)
 sq update 'INSERT DATA { GRAPH <urn:g> { <urn:a> <urn:p> "x" } }'
 sq update --dry-run '…'       # validate + print, send nothing
@@ -117,7 +121,16 @@ token_env = "PROD_TOKEN"
 
 [prefixes]                     # added on top of the built-in standard set
 clockify = "https://data.zazuko.com/clockify/"
+
+[queries]                      # named aliases; run with `sq <name>`, list with `sq aliases`
+people = "SELECT ?name WHERE { ?p a schema:Person ; schema:name ?name } ORDER BY ?name"
+review = """
+SELECT ?s ?o WHERE { ?s skos:closeMatch ?o } LIMIT 50"""
 ```
+
+A query alias runs when the sole argument matches a `[queries]` key (prefixes are
+still auto-injected). Built-in subcommands win over aliases of the same name, and
+aliases are read-only — an alias containing an update is rejected (use `sq update`).
 
 ## Flags
 

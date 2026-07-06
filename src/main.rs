@@ -25,6 +25,7 @@ use std::process::ExitCode;
                   Read:    sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'\n\
                   Update:  sq update 'INSERT DATA { ... }'\n\
                   Built-in: sq any [N] | graphs | classes | about <node> | desc <node> | preds <node> | count <class>\n\
+                  Aliases:  sq <name> runs a query from the [queries] config; sq aliases lists them.\n\
                   Input can be an inline query, -f FILE, or stdin."
 )]
 struct Cli {
@@ -82,6 +83,13 @@ struct Cli {
 }
 
 fn main() -> ExitCode {
+    // Behave like a normal unix filter: when a downstream pipe (e.g. `| head`)
+    // closes, die on SIGPIPE instead of panicking on a broken-pipe write.
+    #[cfg(unix)]
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+
     match run() {
         Ok(code) => code,
         Err(e) => {
@@ -95,9 +103,11 @@ fn run() -> Result<ExitCode> {
     let mut cli = Cli::parse();
     normalize(&mut cli);
 
-    // `endpoints` needs no connection.
-    if cli.rest.first().map(String::as_str) == Some("endpoints") {
-        return list_endpoints(&cli);
+    // These need no connection.
+    match cli.rest.first().map(String::as_str) {
+        Some("endpoints") => return list_endpoints(&cli),
+        Some("aliases") => return list_aliases(),
+        _ => {}
     }
 
     let resolved = config::resolve(cli.endpoint.as_deref())?;
@@ -113,7 +123,13 @@ fn run() -> Result<ExitCode> {
         Some("preds") => read(&cli, &resolved, preds_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
         Some("update") => update(&cli, &resolved, query_text(&cli.rest[1..], &cli.file)?),
         _ => {
-            let q = query_text(&cli.rest, &cli.file)?;
+            // A single bare token that matches a configured query alias runs that
+            // stored query; otherwise the args are treated as an inline query.
+            let q = if cli.rest.len() == 1 && resolved.queries.contains_key(&cli.rest[0]) {
+                resolved.queries[&cli.rest[0]].clone()
+            } else {
+                query_text(&cli.rest, &cli.file)?
+            };
             if matches!(query_kind(&q), Kind::Update) {
                 bail!("this looks like an update — use `sq update '<...>'`");
             }
@@ -530,6 +546,25 @@ fn list_endpoints(cli: &Cli) -> Result<ExitCode> {
             let star = if m.default.as_deref() == Some(name) { "*" } else { " " };
             println!("  {star} {name:<10} {}", e.url);
         }
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn list_aliases() -> Result<ExitCode> {
+    let m = config::merged();
+    if m.queries.is_empty() {
+        println!("(no query aliases configured — add a [queries] table to .sq.toml)");
+        return Ok(ExitCode::SUCCESS);
+    }
+    let width = m.queries.keys().map(String::len).max().unwrap_or(0);
+    for (name, q) in &m.queries {
+        let preview: String = q.split_whitespace().collect::<Vec<_>>().join(" ");
+        let preview = if preview.len() > 70 {
+            format!("{}…", &preview[..70])
+        } else {
+            preview
+        };
+        println!("  {name:<width$}  {preview}");
     }
     Ok(ExitCode::SUCCESS)
 }

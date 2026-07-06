@@ -20,6 +20,8 @@ pub struct FileConfig {
     pub endpoints: BTreeMap<String, EndpointCfg>,
     #[serde(default)]
     pub prefixes: BTreeMap<String, String>,
+    #[serde(default)]
+    pub queries: BTreeMap<String, String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -47,6 +49,7 @@ pub struct Merged {
     pub default: Option<String>,
     pub endpoints: BTreeMap<String, EndpointCfg>,
     pub prefixes: BTreeMap<String, String>,
+    pub queries: BTreeMap<String, String>,
 }
 
 pub fn merged() -> Merged {
@@ -67,10 +70,14 @@ pub fn merged() -> Merged {
     prefixes.extend(user.prefixes);
     prefixes.extend(ws.prefixes);
 
+    let mut queries = user.queries;
+    queries.extend(ws.queries);
+
     Merged {
         default: ws.default.or(user.default),
         endpoints,
         prefixes,
+        queries,
     }
 }
 
@@ -90,6 +97,7 @@ pub struct Resolved {
     pub url: String,
     pub token_env: Option<String>,
     pub prefixes: BTreeMap<String, String>,
+    pub queries: BTreeMap<String, String>,
 }
 
 pub fn resolve(cli_endpoint: Option<&str>) -> Result<Resolved> {
@@ -109,6 +117,7 @@ pub fn resolve(cli_endpoint: Option<&str>) -> Result<Resolved> {
         url,
         token_env,
         prefixes: m.prefixes,
+        queries: m.queries,
     })
 }
 

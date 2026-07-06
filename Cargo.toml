@@ -19,6 +19,7 @@ anyhow = "1"
 comfy-table = "7"
 terminal_size = "0.4"
 dirs = "6"
+libc = "0.2"
 
 [profile.release]
 strip = true
