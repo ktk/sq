@@ -1,9 +1,7 @@
 # sq — SPARQL client for a QLever endpoint
 
-The endpoint companion to [`sop`](../our-stack/sophia-cli) (RDF files) and
-[`rvv`](../our-stack/vocab-validator) (validation). Fast, native, built for
-hammering the live endpoint from the shell (and by agents) without the
-`curl … --data-urlencode … | python3 -m json.tool` ritual.
+Fast, native, built for querying SPARQL endpoints from the shell (and by agents) without the
+`curl … --data-urlencode … | jq …` ritual.
 
 ```bash
 sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
@@ -42,7 +40,7 @@ sq classes                    # class -> instance count
 sq count schema:Person        # instances of a class
 sq about clockify:user/abc    # all in+out triples about a node (table)
 sq desc  clockify:user/abc    # same in+out coverage, as Turtle (DESCRIBE-style)
-sq preds <node>               # distinct predicates on a subject
+sq preds clockify:user/abc    # predicate profile of a node (predicate + usage count)
 sq endpoints                  # list configured endpoints + which resolves
 
 # updates (needs a token: SQ_TOKEN / QLEVER_TOKEN / config token_env)
@@ -53,6 +51,48 @@ sq update --force '…'         # allow guarded destructive ops
 
 Read mode rejects `INSERT/DELETE/…` ("use `sq update`"); `sq update` refuses
 `DROP/CLEAR ALL` and unbounded `DELETE WHERE { ?s ?p ?o }` unless `--force`.
+
+## What the built-ins actually run
+
+Full transparency — each built-in expands to plain SPARQL (curies/IRIs are
+substituted, standard prefixes auto-injected). `-v` prints the exact final query
+before sending. Note that several use `COUNT`/`GROUP BY`, which some triple
+stores evaluate lazily or expensively; QLever handles them fine, but this is why
+it's spelled out.
+
+```sparql
+# sq any [N]           (default N = 20)
+SELECT * WHERE { ?s ?p ?o } LIMIT N
+
+# sq graphs
+SELECT ?graph (COUNT(*) AS ?triples)
+WHERE { GRAPH ?graph { ?s ?p ?o } }
+GROUP BY ?graph ORDER BY DESC(?triples)
+
+# sq classes
+SELECT ?class (COUNT(?s) AS ?n)
+WHERE { ?s a ?class }
+GROUP BY ?class ORDER BY DESC(?n)
+
+# sq count <class>
+SELECT (COUNT(?s) AS ?n) WHERE { ?s a <class> }
+
+# sq about <node>       (incoming + outgoing, as a table)
+SELECT ?dir ?predicate ?object WHERE {
+  { <node> ?predicate ?object BIND("out" AS ?dir) }
+  UNION
+  { ?object ?predicate <node> BIND("in"  AS ?dir) }
+} ORDER BY ?dir ?predicate
+
+# sq desc <node>        (incoming + outgoing, as Turtle)
+CONSTRUCT { <node> ?po ?oo . ?si ?pi <node> . }
+WHERE     { { <node> ?po ?oo } UNION { ?si ?pi <node> } }
+
+# sq preds <node>       (predicate profile of a node)
+SELECT ?predicate (COUNT(*) AS ?n)
+WHERE { <node> ?predicate ?object }
+GROUP BY ?predicate ORDER BY DESC(?n)
+```
 
 ## Config
 

@@ -582,7 +582,8 @@ fn about_q(node: &str, map: &BTreeMap<String, String>) -> String {
 
 fn preds_q(node: &str, map: &BTreeMap<String, String>) -> String {
     format!(
-        "SELECT DISTINCT ?predicate WHERE {{ {} ?predicate ?object }} ORDER BY ?predicate",
+        "SELECT ?predicate (COUNT(*) AS ?n) WHERE {{ {} ?predicate ?object }} \
+         GROUP BY ?predicate ORDER BY DESC(?n)",
         expand_term(node, map)
     )
 }
