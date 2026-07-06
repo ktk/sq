@@ -1,7 +1,10 @@
-# sq — SPARQL client for a QLever endpoint
+# sq — SPARQL client
 
-Fast, native, built for querying SPARQL endpoints from the shell (and by agents) without the
-`curl … --data-urlencode … | jq …` ritual.
+A small command line client for querying SPARQL endpoints.
+
+The original motivation was simple: when working with a SPARQL endpoint from the command line, the same endpoint, prefixes and options tend to be repeated over and over again. `sq` moves that information into a configuration file, provides sensible defaults, and keeps the common case concise.
+
+A second design goal is to make SPARQL easier to use from agents. Rather than generating `curl` commands and handling request details themselves, agents can invoke `sq` directly and focus on the query.
 
 ```bash
 sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
@@ -9,16 +12,12 @@ sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
 
 ## What it does
 
-- **Defaults the endpoint** — never type `--service`. Zero-config against
-  `http://localhost:7077/api`; override per-workspace via `.sq.toml`.
-- **Auto-injects prefixes** — write `schema:Person`, not full IRIs. Standard
-  prefixes are built in; project prefixes come from config.
-- **Readable output** — pretty, colored, width-aware table on a terminal; IRIs
-  shrunk back to `schema:Person`.
-- **Pipes cleanly** — when output isn't a terminal it emits **TSV** (no colors,
-  no borders) so `| cut`/`awk`/`sort` just work. `-j` gives canonical JSON for `jq`.
-- **Built-ins** for the things you type constantly.
-- **Updates** behind a deliberate `sq update`, with guards.
+- Uses a configured default endpoint, with optional per-project overrides via a configuration file.
+- Automatically injects standard and project-specific prefixes, so queries can use `schema:Person` rather than full IRIs.
+- Produces readable terminal output with colours, sensible column widths and compact IRIs.
+- Emits plain TSV when writing to a pipe, making it straightforward to combine with standard Unix tools. Use `-j` for JSON output.
+- Includes a small set of built-in commands for common inspection tasks.
+- Performs updates through an explicit `sq update` command, with safeguards for destructive operations.
 
 ## Usage
 
@@ -28,45 +27,48 @@ sq 'SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10'
 sq -f query.rq
 echo 'ASK { ?s a schema:Person }' | sq
 sq < query.rq
-# bare `sq` (no arg, no -f) reads the query from stdin. It's for pipes/redirects,
-# not a line editor: on a terminal you get backspace-only editing, and you submit
-# with Ctrl-D (EOF), cancel with Ctrl-C. For interactive use prefer `sq '<query>'`.
 
-# formats: text (tty default), tsv (pipe default), csv, json/-j, xml; ttl/nt for CONSTRUCT
+# bare `sq` (no argument, no -f) reads the query from stdin. This is
+# primarily intended for pipes and redirects. On a terminal, finish input with
+# Ctrl-D (EOF) or cancel with Ctrl-C. For interactive use, passing the query as
+# an argument is usually more convenient.
+
+# formats: text (terminal default), tsv (pipe default), csv, json/-j, xml;
+# ttl/nt for CONSTRUCT queries
+#
+# When writing to a pipe, TSV output omits column headers by default.
+# Use -H to include a header row, or --no-header to suppress it explicitly.
 sq -r csv 'SELECT …' > out.csv
 sq -j 'SELECT …' | jq -r '.results.bindings[].s.value'
-sq --full 'SELECT …'          # keep full IRIs instead of shrinking
+sq --full 'SELECT …'
 
 # built-ins
-sq any                        # peek at 20 arbitrary triples (sq any 50 for more)
-sq graphs                     # named graphs + triple counts
-sq classes                    # class -> instance count
-sq count schema:Person        # instances of a class
-sq about clockify:user/abc    # all in+out triples about a node (table)
-sq desc  clockify:user/abc    # same in+out coverage, as Turtle (DESCRIBE-style)
-sq preds clockify:user/abc    # predicate profile of a node (predicate + usage count)
-sq endpoints                  # list configured endpoints + which resolves
+sq any
+sq graphs
+sq classes
+sq count schema:Person
+sq about example:resource
+sq desc example:resource
+sq preds example:resource
+sq endpoints
 
-# query aliases (stored in the [queries] config table)
-sq people                     # runs the query named "people"
-sq aliases                    # list configured query aliases
+# query aliases
+sq people
+sq aliases
 
-# updates (needs a token: SQ_TOKEN / QLEVER_TOKEN / config token_env)
+# updates
 sq update 'INSERT DATA { GRAPH <urn:g> { <urn:a> <urn:p> "x" } }'
-sq update --dry-run '…'       # validate + print, send nothing
-sq update --force '…'         # allow guarded destructive ops
+sq update --dry-run '…'
+sq update --force '…'
 ```
 
-Read mode rejects `INSERT/DELETE/…` ("use `sq update`"); `sq update` refuses
-`DROP/CLEAR ALL` and unbounded `DELETE WHERE { ?s ?p ?o }` unless `--force`.
+Read mode rejects update operations and asks you to use `sq update` instead. By default, `sq update` also refuses potentially destructive operations such as `DROP`, `CLEAR ALL` or an unbounded `DELETE WHERE` unless `--force` is specified.
 
 ## What the built-ins actually run
 
-Full transparency — each built-in expands to plain SPARQL (curies/IRIs are
-substituted, standard prefixes auto-injected). `-v` prints the exact final query
-before sending. Note that several use `COUNT`/`GROUP BY`, which some triple
-stores evaluate lazily or expensively; QLever handles them fine, but this is why
-it's spelled out.
+The built-ins are simply shortcuts for ordinary SPARQL queries. Prefixes are injected automatically, and `-v` prints the final query before it is sent.
+
+Some of the built-ins rely on `COUNT` and `GROUP BY`, which can be expensive on some triple stores. They are included because they work well with QLever, and the corresponding SPARQL is shown below for clarity.
 
 ```sparql
 # sq any [N]           (default N = 20)
@@ -104,8 +106,9 @@ GROUP BY ?predicate ORDER BY DESC(?n)
 
 ## Config
 
-Resolution: `-e/--service` (name or URL) → `SQ_ENDPOINT` → `.sq.toml` (cwd +
-ancestors) → `~/.config/sq/config.toml` default → built-in localhost.
+Endpoint selection follows this order:
+
+`-e/--endpoint` (name or URL) → `SQ_ENDPOINT` → `.sq.toml` (current directory or one of its parents) → `~/.config/sq/config.toml` → built-in localhost.
 
 ```toml
 # .sq.toml  (workspace)  or  ~/.config/sq/config.toml
@@ -128,18 +131,42 @@ review = """
 SELECT ?s ?o WHERE { ?s skos:closeMatch ?o } LIMIT 50"""
 ```
 
-A query alias runs when the sole argument matches a `[queries]` key (prefixes are
-still auto-injected). Built-in subcommands win over aliases of the same name, and
-aliases are read-only — an alias containing an update is rejected (use `sq update`).
+\### Saved queries
+
+The optional `[queries]` section lets you give frequently used queries a name.
+
+Instead of typing the full query every time,
+
+\```bash
+
+sq people
+
+\```
+
+runs the query stored under `people`.
+
+Use `sq aliases` to list all configured aliases.
+
+Aliases are intended for read queries only. If an alias contains an update operation, it is rejected. Use `sq update` for `INSERT`, `DELETE` and other update queries.
+
+If an alias has the same name as a built-in command, the built-in command takes precedence.
 
 ## Flags
 
-`-e/--endpoint` · `-r/--results` · `-j/--json` · `--full` · `-H/--header` ·
-`--no-header` · `--no-prefixes` · `--color auto|always|never` · `-v/--verbose` ·
-`-f/--file` · `--dry-run` · `--force`
-
-> Note: value flags (`-r`, `-e`, `-f`, `--color`) go **before** the query.
-> Boolean flags (`--dry-run`, `--force`, `-v`, …) work anywhere.
+| Flag | Description |
+|------|-------------|
+| `-e`, `--endpoint <NAME|URL>` | Select an endpoint by its configured name, or specify a QLever endpoint URL directly. |
+| `-r`, `--results <FMT>` | Output format: `text`, `tsv`, `csv`, `json`, `xml` for result sets, or `ttl` / `nt` for graph queries. By default, `sq` produces a readable table on a terminal and TSV when writing to a pipe. |
+| `-j`, `--json` | Shortcut for `-r json`. |
+| `--full` | Show full IRIs instead of shrinking them to prefixed names such as `schema:Person`. |
+| `-H`, `--header` | Include a header row in machine-readable output (TSV or CSV). Useful when the output is intended for tools that expect column names. |
+| `--no-header` | Omit the header row. This is the default for TSV output when writing to a pipe. |
+| `--no-prefixes` | Do not automatically inject `PREFIX` declarations. |
+| `--color auto|always|never` | Control coloured terminal output. Colours are disabled automatically when output is not a terminal unless `always` is selected. |
+| `-v`, `--verbose` | Print the resolved endpoint and the final SPARQL query before it is sent. |
+| `-f`, `--file <FILE>` | Read the query from a file instead of the command line or standard input. |
+| `--dry-run` | For `sq update`, validate the update and print the final SPARQL without sending it. |
+| `--force` | For `sq update`, allow operations that are normally rejected because they are potentially destructive. |
 
 ## Build
 
