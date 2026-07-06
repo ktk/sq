@@ -155,14 +155,14 @@ If an alias has the same name as a built-in command, the built-in command takes 
 
 | Flag | Description |
 |------|-------------|
-| `-e`, `--endpoint \<NAME|URL\>` | Select an endpoint by its configured name, or specify a QLever endpoint URL directly. |
+| `-e`, `--endpoint <NAME\|URL>` | Select an endpoint by its configured name, or specify a QLever endpoint URL directly. |
 | `-r`, `--results <FMT>` | Output format: `text`, `tsv`, `csv`, `json`, `xml` for result sets, or `ttl` / `nt` for graph queries. By default, `sq` produces a readable table on a terminal and TSV when writing to a pipe. |
 | `-j`, `--json` | Shortcut for `-r json`. |
 | `--full` | Show full IRIs instead of shrinking them to prefixed names such as `schema:Person`. |
 | `-H`, `--header` | Include a header row in machine-readable output (TSV or CSV). Useful when the output is intended for tools that expect column names. |
 | `--no-header` | Omit the header row. This is the default for TSV output when writing to a pipe. |
 | `--no-prefixes` | Do not automatically inject `PREFIX` declarations. |
-| `--color auto|always|never` | Control coloured terminal output. Colours are disabled automatically when output is not a terminal unless `always` is selected. |
+| `--color auto\|always\|never` | Control coloured terminal output. Colours are disabled automatically when output is not a terminal unless `always` is selected. |
 | `-v`, `--verbose` | Print the resolved endpoint and the final SPARQL query before it is sent. |
 | `-f`, `--file <FILE>` | Read the query from a file instead of the command line or standard input. |
 | `--dry-run` | For `sq update`, validate the update and print the final SPARQL without sending it. |
