@@ -10,6 +10,8 @@ A second design goal is to make SPARQL easier to use from agents. Rather than ge
 sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
 ```
 
+> **Note:** This tool is intended for querying SPARQL endpoints. If you want to query RDF files directly from the command line, check out the excellent Rust-based RDF CLI tool [`sop`](https://github.com/pchampin/sophia-cli).
+
 ## What it does
 
 - Uses a configured default endpoint, with optional per-project overrides via a configuration file.
