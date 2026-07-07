@@ -10,6 +10,8 @@ A second design goal is to make SPARQL easier to use from agents. Rather than ge
 sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
 ```
 
+`sq` is inspired by command-line tools such as the [Apache Jena CLI](https://jena.apache.org/documentation/query/cmds.html), but takes a different approach. Instead of running on the JVM, it is a small native executable written in Rust, providing virtually zero startup time and fast execution.
+
 > **Note:** This tool is intended for querying SPARQL endpoints. If you want to query RDF files directly from the command line, check out the excellent Rust-based RDF CLI tool [`sop`](https://github.com/pchampin/sophia-cli).
 
 ## What it does
