@@ -25,7 +25,8 @@ use std::process::ExitCode;
                   Read:    sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'\n\
                   Update:  sq update 'INSERT DATA { ... }'\n\
                   Built-in: sq any [N] | graphs | classes | about <node> | desc <node> | preds <node> | count <class>\n\
-                  Aliases:  sq <name> runs a query from the [queries] config; sq aliases lists them.\n\
+                  Aliases:  sq <name> runs a query from the [queries] config (built-ins win on\n\
+                  \x20         name clashes); sq alias <name> always runs the alias; sq aliases lists them.\n\
                   Input can be an inline query, -f FILE, or stdin."
 )]
 struct Cli {
@@ -111,6 +112,7 @@ fn run() -> Result<ExitCode> {
     match cli.rest.first().map(String::as_str) {
         Some("endpoints") => return list_endpoints(&cli),
         Some("aliases") => return list_aliases(),
+        Some("alias") if cli.rest.len() < 2 => return list_aliases(),
         _ => {}
     }
 
@@ -126,20 +128,35 @@ fn run() -> Result<ExitCode> {
         Some("desc") => read(&cli, &resolved, desc_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
         Some("preds") => read(&cli, &resolved, preds_q(&arg(&cli.rest, 1)?, &resolved.prefixes)),
         Some("update") => update(&cli, &resolved, query_text(&cli.rest[1..], &cli.file)?),
+        // Explicit, clash-proof form: always runs a configured alias, even if a
+        // built-in of the same name exists (now or in future).
+        Some("alias") => {
+            let name = arg(&cli.rest, 1)?;
+            let q = resolved.queries.get(&name).cloned().ok_or_else(|| {
+                anyhow::anyhow!("no query alias named '{name}' (see `sq aliases`)")
+            })?;
+            run_read_query(&cli, &resolved, q)
+        }
         _ => {
             // A single bare token that matches a configured query alias runs that
             // stored query; otherwise the args are treated as an inline query.
+            // (Built-ins take precedence here — use `sq alias <name>` to be sure.)
             let q = if cli.rest.len() == 1 && resolved.queries.contains_key(&cli.rest[0]) {
                 resolved.queries[&cli.rest[0]].clone()
             } else {
                 query_text(&cli.rest, &cli.file)?
             };
-            if matches!(query_kind(&q), Kind::Update) {
-                bail!("this looks like an update — use `sq update '<...>'`");
-            }
-            read(&cli, &resolved, q)
+            run_read_query(&cli, &resolved, q)
         }
     }
+}
+
+/// Reject writes, then run a read query. Shared by inline queries and aliases.
+fn run_read_query(cli: &Cli, resolved: &config::Resolved, q: String) -> Result<ExitCode> {
+    if matches!(query_kind(&q), Kind::Update) {
+        bail!("this looks like an update — use `sq update '<...>'`");
+    }
+    read(cli, resolved, q)
 }
 
 // ── input ───────────────────────────────────────────────────────────────────

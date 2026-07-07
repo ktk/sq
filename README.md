@@ -53,8 +53,9 @@ sq preds example:resource
 sq endpoints
 
 # query aliases
-sq people
-sq aliases
+sq people                     # bare form (built-ins win on name clashes)
+sq alias people               # explicit form (always runs the alias)
+sq aliases                    # list configured aliases
 
 # updates
 sq update 'INSERT DATA { GRAPH <urn:g> { <urn:a> <urn:p> "x" } }'
@@ -149,7 +150,13 @@ Use `sq aliases` to list all configured aliases.
 
 Aliases are intended for read queries only. If an alias contains an update operation, it is rejected. Use `sq update` for `INSERT`, `DELETE` and other update queries.
 
-If an alias has the same name as a built-in command, the built-in command takes precedence.
+If an alias has the same name as a built-in command, the built-in command takes precedence for the bare `sq <name>` form. To run such an alias unambiguously — and to stay safe against built-ins added in future versions — use the explicit form:
+
+```bash
+sq alias people
+```
+
+`sq alias <name>` always runs the configured query, regardless of any built-in of the same name.
 
 ## Flags
 
