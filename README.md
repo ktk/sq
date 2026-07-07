@@ -136,6 +136,8 @@ review = """
 SELECT ?s ?o WHERE { ?s skos:closeMatch ?o } LIMIT 50"""
 ```
 
+The built-in **standard** prefixes are [Zazuko's `rdf-vocabularies`](https://github.com/zazuko/rdf-vocabularies) — an opinionated but curated list of commonly used prefixes. The `[prefixes]` table adds project-specific ones on top (and can override a standard one).
+
 ### Saved queries
 
 The optional `[queries]` section lets you give frequently used queries a name.
