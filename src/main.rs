@@ -347,7 +347,7 @@ fn http_query(url: &str, query: &str, accept: &str) -> Result<String> {
         .set("Accept", accept)
         .send_form(&[("query", query)])
     {
-        Ok(resp) => Ok(resp.into_string()?),
+        Ok(resp) => read_body(resp),
         Err(ureq::Error::Status(code, resp)) => {
             let body = resp.into_string().unwrap_or_default();
             bail!("endpoint returned HTTP {code}: {}", body.trim())
@@ -356,13 +356,21 @@ fn http_query(url: &str, query: &str, accept: &str) -> Result<String> {
     }
 }
 
+/// Reads a whole response body. `into_string()` caps bodies at 10 MB, which large
+/// result sets (and CONSTRUCT dumps) exceed; the reader has no limit.
+fn read_body(resp: ureq::Response) -> Result<String> {
+    let mut body = String::new();
+    resp.into_reader().read_to_string(&mut body)?;
+    Ok(body)
+}
+
 fn http_update(url: &str, update: &str, token: Option<&str>) -> Result<String> {
     let mut req = ureq::post(url).set("Accept", "application/json");
     if let Some(t) = token {
         req = req.set("Authorization", &format!("Bearer {t}"));
     }
     match req.send_form(&[("update", update)]) {
-        Ok(resp) => Ok(resp.into_string()?),
+        Ok(resp) => read_body(resp),
         Err(ureq::Error::Status(code, resp)) => {
             let body = resp.into_string().unwrap_or_default();
             bail!("endpoint returned HTTP {code}: {}", body.trim())
