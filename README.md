@@ -20,7 +20,7 @@ sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
 cargo install zazuko-sq
 ```
 
-The crate is called `zazuko-sq` (the name `sq` is taken on crates.io); the installed command is `sq`. It clashes with the `sq` command of [Sequoia PGP](https://sequoia-pgp.org/) if you have both installed.
+The crate is called `zazuko-sq` (the name `sq` is taken on crates.io); the installed command is `sq`.
 
 ## What it does
 
