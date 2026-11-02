@@ -1,9 +1,14 @@
 [package]
-name = "sq"
+name = "zazuko-sq"
 version = "0.1.0"
 edition = "2024"
 description = "Fast SPARQL client for a QLever endpoint — auto-prefixes, readable output, built-ins. The endpoint companion to sop/rvv."
 license = "Apache-2.0"
+repository = "https://github.com/ktk/sq"
+homepage = "https://github.com/ktk/sq"
+readme = "README.md"
+keywords = ["sparql", "rdf", "qlever", "cli", "linked-data"]
+categories = ["command-line-utilities", "database"]
 
 [[bin]]
 name = "sq"

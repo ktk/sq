@@ -14,6 +14,14 @@ sq 'SELECT ?s WHERE { ?s a schema:Person } LIMIT 5'
 
 > **Note:** This tool is intended for querying SPARQL endpoints. If you want to query RDF files directly from the command line, check out the excellent Rust-based RDF CLI tool [`sop`](https://github.com/pchampin/sophia-cli).
 
+## Install
+
+```bash
+cargo install zazuko-sq
+```
+
+The crate is called `zazuko-sq` (the name `sq` is taken on crates.io); the installed command is `sq`. It clashes with the `sq` command of [Sequoia PGP](https://sequoia-pgp.org/) if you have both installed.
+
 ## What it does
 
 - Uses a configured default endpoint, with optional per-project overrides via a configuration file.

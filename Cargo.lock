@@ -708,22 +708,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 
 [[package]]
-name = "sq"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "comfy-table",
- "dirs",
- "libc",
- "serde",
- "serde_json",
- "terminal_size",
- "toml",
- "ureq",
-]
-
-[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1078,6 +1062,22 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "zazuko-sq"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "comfy-table",
+ "dirs",
+ "libc",
+ "serde",
+ "serde_json",
+ "terminal_size",
+ "toml",
+ "ureq",
 ]
 
 [[package]]
